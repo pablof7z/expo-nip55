@@ -9,4 +9,4 @@ declare class NostrNip55SignerModule extends NativeModule<NostrNip55SignerModule
 }
 
 // This call loads the native module object from the JSI.
-export default requireNativeModule<NostrNip55SignerModule>('NostrNip55Signer');
+export default requireNativeModule<NostrNip55SignerModule>('ExpoNostrSignerModule');

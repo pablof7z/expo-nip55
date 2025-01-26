@@ -41,3 +41,7 @@ android {
     abortOnError false
   }
 }
+
+dependencies {
+    implementation("com.github.chebizarro:NostrAndroid:5f4ce2e96d")
+}
