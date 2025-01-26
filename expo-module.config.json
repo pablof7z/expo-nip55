@@ -1,0 +1,17 @@
+{
+  "platforms": [
+    "apple",
+    "android",
+    "web"
+  ],
+  "apple": {
+    "modules": [
+      "NostrNip55SignerModule"
+    ]
+  },
+  "android": {
+    "modules": [
+      "biz.nostr.expo.signer.NostrNip55SignerModule"
+    ]
+  }
+}
