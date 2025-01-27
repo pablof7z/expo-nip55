@@ -1,7 +1,12 @@
 package biz.nostr.expo.signer
 
+import android.content.Intent
+
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.Promise
+import expo.modules.kotlin.exception.toCodedException
+
 import java.net.URL
 
 import biz.nostr.android.nip55.AppInfo
@@ -9,8 +14,12 @@ import biz.nostr.android.nip55.Signer
 import biz.nostr.android.nip55.IntentBuilder
 
 class NostrNip55SignerModule : Module() {
-  // A default or user-set package name
+
   private var signerPackageName: String? = null
+
+  // region: Fields for fallback approach
+  private var pendingPromise: Promise? = null
+  private var pendingRequestCode: Int = 0
 
   override fun definition() = ModuleDefinition {
 
@@ -57,20 +66,23 @@ class NostrNip55SignerModule : Module() {
     /********************************************************
      * getPublicKey
      ********************************************************/
-    AsyncFunction("getPublicKey") { packageName: String? ->
-      val pkg = getPackageNameFromCall(packageName)
-      // Attempt direct call first:
-      val publicKey: String? = Signer.getPublicKey(appContext.reactContext, pkg)
-      if (publicKey != null) {
-        // Return directly
-        mapOf("npub" to publicKey, "package" to pkg)
-      } else {
-        // If you want to replicate "startActivityForResult" fallback,
-        // see the explanation below. For now, let's throw an exception or return a placeholder.
-        throw UnsupportedOperationException("startActivityForResult-based fallback not supported in Expo modules")
-      }
-    }
-
+    AsyncFunction("getPublicKey") { pkgName: String?, promise: Promise ->
+		val packageName = getPackageNameFromCall(pkgName)
+		val publicKey: String? = Signer.getPublicKey(appContext.reactContext, packageName)
+		if (publicKey != null) {
+		  // Direct approach success
+		  val resultMap = mapOf("npub" to publicKey, "package" to packageName)
+		  promise.resolve(resultMap)
+		} else {
+		  // Fallback approach
+		  launchFallbackIntent(
+			requestCode = REQUEST_GET_PUBLIC_KEY,
+			intent = IntentBuilder.getPublicKeyIntent(packageName, /*permissions*/ null),
+			promise = promise
+		  )
+		}
+	  }
+  
     /********************************************************
      * signEvent
      ********************************************************/
@@ -181,13 +193,48 @@ class NostrNip55SignerModule : Module() {
   }
 
   /**
-   * Helper method to retrieve or fallback to previously set signerPackageName.
+   * Helper method to handle fallback launching
    */
-  private fun getPackageNameFromCall(paramPackageName: String?): String {
-    return if (paramPackageName.isNullOrBlank()) {
-      signerPackageName ?: throw IllegalStateException("Signer package name not set. Call setPackageName first.")
-    } else {
-      paramPackageName
+  private fun launchFallbackIntent(
+    requestCode: Int,
+    intent: Intent,
+    promise: Promise
+  ) {
+    // If another fallback is pending, reject
+    if (pendingPromise != null) {
+      //promise.reject("ACTIVITY_IN_PROGRESS", "Another fallback activity is already started.")
+      return
+    }
+    pendingPromise = promise
+    pendingRequestCode = requestCode
+
+    try {
+      val activity = appContext.activityProvider?.currentActivity
+        ?: throw IllegalStateException("No current activity available")
+      activity.startActivityForResult(intent, requestCode)
+    } catch (e: Throwable) {
+      // Clean up
+      pendingPromise = null
+      pendingRequestCode = 0
+      promise.reject(e.toCodedException())
     }
   }
+
+  /**
+   * Helper function to get the effective package name or fallback to a stored one
+   */
+  private fun getPackageNameFromCall(paramPackageName: String?): String {
+    // If paramPackageName is null/blank, fallback to a stored one, else throw an error
+    // (assuming you have a stored 'signerPackageName' in your class, or adapt this logic)
+    return if (!paramPackageName.isNullOrBlank()) {
+      paramPackageName
+    } else {
+      signerPackageName ?: throw IllegalArgumentException("Signer package name not set. Call setPackageName first.")
+    }
+  }
+
+  companion object {
+    private const val REQUEST_GET_PUBLIC_KEY = 1001
+  }
+
 }
