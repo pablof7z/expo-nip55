@@ -1,11 +1,13 @@
 package biz.nostr.expo.signer
 
 import android.content.Intent
+import android.content.Context
 
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.exception.toCodedException
+import expo.modules.kotlin.exception.Exceptions
 
 import java.net.URL
 
@@ -14,6 +16,10 @@ import biz.nostr.android.nip55.Signer
 import biz.nostr.android.nip55.IntentBuilder
 
 class NostrNip55SignerModule : Module() {
+
+
+  private val context: Context
+    get() = appContext.reactContext ?: throw Exceptions.ReactContextLost()
 
   private var signerPackageName: String? = null
 
@@ -31,7 +37,7 @@ class NostrNip55SignerModule : Module() {
      * isExternalSignerInstalled
      ********************************************************/
     AsyncFunction("isExternalSignerInstalled") { packageName: String ->
-	  val resolveInfoList: List<Any> = Signer.isExternalSignerInstalled(appContext.reactContext, packageName)  
+	  val resolveInfoList: List<Any> = Signer.isExternalSignerInstalled(context, packageName)  
 	  // Return true if the list isn't empty, false otherwise
 	  resolveInfoList.isNotEmpty()
 	}
@@ -40,7 +46,7 @@ class NostrNip55SignerModule : Module() {
      * getInstalledSignerApps
      ********************************************************/
     AsyncFunction("getInstalledSignerApps") {
-      val signerAppInfos: List<AppInfo> = Signer.getInstalledSignerApps(appContext.reactContext)
+      val signerAppInfos: List<AppInfo> = Signer.getInstalledSignerApps(context)
       signerAppInfos.map { info ->
         mapOf(
           "name" to info.name,
@@ -66,7 +72,7 @@ class NostrNip55SignerModule : Module() {
      ********************************************************/
     AsyncFunction("getPublicKey") { pkgName: String?, promise: Promise ->
 		val packageName = getPackageNameFromCall(pkgName)
-		val publicKey: String? = Signer.getPublicKey(appContext.reactContext, packageName)
+		val publicKey: String? = Signer.getPublicKey(context, packageName)
 		if (publicKey != null) {
 		  // Direct approach success
 		  val resultMap = mapOf("npub" to publicKey, "package" to packageName)
@@ -84,21 +90,22 @@ class NostrNip55SignerModule : Module() {
     /********************************************************
      * signEvent
      ********************************************************/
-    AsyncFunction("signEvent") { packageName: String?, eventJson: String, eventId: String, npub: String ->
-      val pkg = getPackageNameFromCall(packageName)
-      val signedEvent: Array<String>? = Signer.signEvent(appContext.reactContext, pkg, eventJson, npub)
-      if (signedEvent != null) {
-        // [0]: signature, [1]: event
-        mapOf(
-          "signature" to signedEvent[0],
-          "id" to eventId,
-          "event" to signedEvent[1]
-        )
-      } else {
-        throw UnsupportedOperationException("Intent fallback not supported yet in an Expo module.")
-      }
-    }
-
+    AsyncFunction("signEvent") { pkgName: String?, eventJson: String, eventId: String, npub: String, promise: Promise ->
+		val packageName = getPackageNameFromCall(pkgName)
+		val signedEvent: Array<String>? = Signer.signEvent(context, packageName, eventJson, npub)
+		if (signedEvent != null) {
+		  val resultMap = mapOf(
+			"signature" to signedEvent[0],
+			"id" to eventId,
+			"event" to signedEvent[1]
+		  )
+		  promise.resolve(resultMap)
+		} else {
+		  val intent = IntentBuilder.signEventIntent(packageName, eventJson, eventId, npub)
+		  launchFallbackIntent(REQUEST_SIGN_EVENT, intent, promise)
+		}
+	  }
+  
     /********************************************************
      * nip04Encrypt
      ********************************************************/
@@ -109,7 +116,7 @@ class NostrNip55SignerModule : Module() {
         pubKey: String,
         npub: String ->
       val pkg = getPackageNameFromCall(packageName)
-      val encryptedText = Signer.nip04Encrypt(appContext.reactContext, pkg, plainText, pubKey, npub)
+      val encryptedText = Signer.nip04Encrypt(context, pkg, plainText, pubKey, npub)
       encryptedText?.let {
         mapOf("result" to it, "id" to id)
       } ?: throw UnsupportedOperationException("Fallback encryption via Intent not supported here.")
@@ -125,7 +132,7 @@ class NostrNip55SignerModule : Module() {
         pubKey: String,
         npub: String ->
       val pkg = getPackageNameFromCall(packageName)
-      val decryptedText = Signer.nip04Decrypt(appContext.reactContext, pkg, encryptedText, pubKey, npub)
+      val decryptedText = Signer.nip04Decrypt(context, pkg, encryptedText, pubKey, npub)
       decryptedText?.let {
         mapOf("result" to it, "id" to id)
       } ?: throw UnsupportedOperationException("Fallback decrypt via Intent not supported.")
@@ -141,7 +148,7 @@ class NostrNip55SignerModule : Module() {
         pubKey: String,
         npub: String ->
       val pkg = getPackageNameFromCall(packageName)
-      val encryptedText = Signer.nip44Encrypt(appContext.reactContext, pkg, plainText, pubKey, npub)
+      val encryptedText = Signer.nip44Encrypt(context, pkg, plainText, pubKey, npub)
       encryptedText?.let {
         mapOf("result" to it, "id" to id)
       } ?: throw UnsupportedOperationException("NIP-44 fallback encryption not supported.")
@@ -157,7 +164,7 @@ class NostrNip55SignerModule : Module() {
         pubKey: String,
         npub: String ->
       val pkg = getPackageNameFromCall(packageName)
-      val decryptedText = Signer.nip44Decrypt(appContext.reactContext, pkg, encryptedText, pubKey, npub)
+      val decryptedText = Signer.nip44Decrypt(context, pkg, encryptedText, pubKey, npub)
       decryptedText?.let {
         mapOf("result" to it, "id" to id)
       } ?: throw UnsupportedOperationException("NIP-44 fallback decryption not supported.")
@@ -172,7 +179,7 @@ class NostrNip55SignerModule : Module() {
         id: String,
         npub: String ->
       val pkg = getPackageNameFromCall(packageName)
-      val decryptedEventJson = Signer.decryptZapEvent(appContext.reactContext, pkg, eventJson, npub)
+      val decryptedEventJson = Signer.decryptZapEvent(context, pkg, eventJson, npub)
       decryptedEventJson?.let {
         mapOf("result" to it, "id" to id)
       } ?: throw UnsupportedOperationException("Fallback Intent approach not supported.")
@@ -183,7 +190,7 @@ class NostrNip55SignerModule : Module() {
      ********************************************************/
     AsyncFunction("getRelays") { packageName: String?, id: String, npub: String ->
       val pkg = getPackageNameFromCall(packageName)
-      val relayJson = Signer.getRelays(appContext.reactContext, pkg, npub)
+      val relayJson = Signer.getRelays(context, pkg, npub)
       relayJson?.let {
         mapOf("result" to it, "id" to id)
       } ?: throw UnsupportedOperationException("Fallback intent approach not supported.")
@@ -233,6 +240,7 @@ class NostrNip55SignerModule : Module() {
 
   companion object {
     private const val REQUEST_GET_PUBLIC_KEY = 1001
+    private const val REQUEST_SIGN_EVENT = 1002
   }
 
 }

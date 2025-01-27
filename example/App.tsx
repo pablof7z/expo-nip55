@@ -1,4 +1,5 @@
 import * as NostrNip55SignerModule from "nostr-nip55-signer";
+import { getEventHash, nip19 } from "nostr-tools";
 import React, { useState, useEffect } from "react";
 import {
   Alert,
@@ -102,9 +103,22 @@ export default function App(): JSX.Element {
    */
   const signEvent = async () => {
     try {
-      const eventJson = JSON.stringify({ content: eventContent });
+	  const { data } = nip19.decode(publicKey);
+	  const event = {
+        kind: 1,
+        created_at: Math.round(Date.now() / 1000),
+        content: eventContent,
+        tags: [],
+        pubkey: data,
+        id: "",
+        sig: "",
+      };
+      const hash = getEventHash(event);
+      event.id = hash;
+
+      const eventJson = JSON.stringify(event);
       const eventId = "event123";
-      const npub = publicKey;
+      const npub = data;
 
       if (!npub) {
         Alert.alert("Error", "Please get the public key first.");
