@@ -1,7 +1,4 @@
 import NostrNip55SignerModule from "./NostrNip55SignerModule";
-/**
- * The typed interface for your Kotlin-based Expo module.
- */
 
 export async function isExternalSignerInstalled(
   packageName: string,
@@ -121,7 +118,6 @@ export async function getRelays(
   return NostrNip55SignerModule.getRelays(packageName, id, npub);
 }
 
-// If you prefer a default export that groups everything:
 export default {
   isExternalSignerInstalled,
   getInstalledSignerApps,

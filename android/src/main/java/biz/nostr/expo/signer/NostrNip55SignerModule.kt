@@ -31,9 +31,7 @@ class NostrNip55SignerModule : Module() {
      * isExternalSignerInstalled
      ********************************************************/
     AsyncFunction("isExternalSignerInstalled") { packageName: String ->
-	  // Call the Java method that returns List<ResolveInfo>
-	  val resolveInfoList: List<Any> = Signer.isExternalSignerInstalled(appContext.reactContext, packageName)
-  
+	  val resolveInfoList: List<Any> = Signer.isExternalSignerInstalled(appContext.reactContext, packageName)  
 	  // Return true if the list isn't empty, false otherwise
 	  resolveInfoList.isNotEmpty()
 	}
