@@ -103,8 +103,8 @@ export default function App(): JSX.Element {
    */
   const signEvent = async () => {
     try {
-	  const { data } = nip19.decode(publicKey);
-	  const event = {
+      const { data } = nip19.decode(publicKey);
+      const event = {
         kind: 1,
         created_at: Math.round(Date.now() / 1000),
         content: eventContent,
@@ -156,6 +156,7 @@ export default function App(): JSX.Element {
         Alert.alert("Error", "Message to encrypt is required.");
         return;
       }
+      const { data } = nip19.decode(encryptPubKey);
 
       let result;
       if (isScriptActive) {
@@ -163,7 +164,7 @@ export default function App(): JSX.Element {
           packageName,
           messageToEncrypt,
           "encrypt123",
-          encryptPubKey,
+          data,
           publicKey,
         );
       } else {
@@ -171,7 +172,7 @@ export default function App(): JSX.Element {
           packageName,
           messageToEncrypt,
           "encrypt123",
-          encryptPubKey,
+          data,
           publicKey,
         );
       }
@@ -254,10 +255,12 @@ export default function App(): JSX.Element {
    */
   const getRelays = async () => {
     try {
+      const { data } = nip19.decode(publicKey);
+
       const result = await NostrNip55SignerModule.getRelays(
         packageName,
         "relay123",
-        publicKey,
+        data,
       );
       setRelays(result.result);
       Alert.alert("Relays", `Relay Information: ${result.result}`);
