@@ -1,6 +1,6 @@
 {
   "name": "expo-nip55",
-  "version": "0.1.1",
+  "version": "0.1.",
   "description": "An expo implementation of the Nip55 Signer",
   "main": "build/index.js",
   "types": "build/index.d.ts",
