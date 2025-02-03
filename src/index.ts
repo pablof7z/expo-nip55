@@ -6,7 +6,13 @@ export async function isExternalSignerInstalled(
   return NostrNip55SignerModule.isExternalSignerInstalled(packageName);
 }
 
-export async function getInstalledSignerApps() {
+export interface SignerAppInfo {
+  name: string;
+  packageName: string;
+  iconUrl?: string;
+}
+
+export async function getInstalledSignerApps(): Promise<SignerAppInfo[]> {
   return NostrNip55SignerModule.getInstalledSignerApps();
 }
 
