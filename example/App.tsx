@@ -21,6 +21,12 @@ export interface SignerAppInfo {
   iconUrl?: string;
 }
 
+export interface Permission {
+  type: string;
+  kind?: number;
+  checked?: boolean;
+}
+
 export default function App(): JSX.Element {
   const [publicKey, setPublicKey] = useState<string>("");
   const [signature, setSignature] = useState<string>("");
@@ -41,8 +47,7 @@ export default function App(): JSX.Element {
   useEffect(() => {
     const fetchSignerApps = async () => {
       try {
-        const apps: SignerAppInfo[] =
-          await Nip55.getInstalledSignerApps();
+        const apps: SignerAppInfo[] = await Nip55.getInstalledSignerApps();
         setSignerApps(apps);
       } catch (error) {
         console.error("Error getting installed signer apps:", error);
@@ -62,8 +67,7 @@ export default function App(): JSX.Element {
           // setPackageName from the Expo module
           await Nip55.setPackageName(packageName);
           // isExternalSignerInstalled => { installed: boolean }
-          const result =
-            await Nip55.isExternalSignerInstalled(packageName);
+          const result = await Nip55.isExternalSignerInstalled(packageName);
           setSignerInstalled(Boolean(result));
         } else {
           setSignerInstalled(false);
@@ -84,12 +88,17 @@ export default function App(): JSX.Element {
     setPackageName(app.packageName);
   };
 
+  const perms: Permission[] = [
+    { type: "sign_event", kind: 22242 },
+    { type: "nip44_decrypt" },
+  ];
+
   /**
    * Retrieves the public key
    */
   const getPublicKey = async () => {
     try {
-      const result = await Nip55.getPublicKey(packageName);
+      const result = await Nip55.getPublicKey(packageName, perms);
       setPublicKey(result.npub);
       Alert.alert("Public Key", `npub: ${result.npub}`);
     } catch (error: any) {
@@ -129,7 +138,7 @@ export default function App(): JSX.Element {
         packageName,
         eventJson,
         eventId,
-        npub,
+        npub
       );
       setSignature(result.signature);
       Alert.alert("Sign Event", `Signature: ${result.signature}`);
@@ -165,7 +174,7 @@ export default function App(): JSX.Element {
           messageToEncrypt,
           "encrypt123",
           data,
-          publicKey,
+          publicKey
         );
       } else {
         result = await Nip55.nip04Encrypt(
@@ -173,7 +182,7 @@ export default function App(): JSX.Element {
           messageToEncrypt,
           "encrypt123",
           data,
-          publicKey,
+          publicKey
         );
       }
       setEncryptedMessage(result.result);
@@ -209,7 +218,7 @@ export default function App(): JSX.Element {
           encryptedMessage,
           "decrypt123",
           encryptPubKey,
-          publicKey,
+          publicKey
         );
       } else {
         result = await Nip55.nip04Decrypt(
@@ -217,7 +226,7 @@ export default function App(): JSX.Element {
           encryptedMessage,
           "decrypt123",
           encryptPubKey,
-          publicKey,
+          publicKey
         );
       }
 
@@ -241,7 +250,7 @@ export default function App(): JSX.Element {
         packageName,
         eventJson,
         eventId,
-        publicKey,
+        publicKey
       );
       Alert.alert("Decrypt Zap Event", `Result: ${result.result}`);
     } catch (error: any) {
@@ -257,11 +266,7 @@ export default function App(): JSX.Element {
     try {
       const { data } = nip19.decode(publicKey);
 
-      const result = await Nip55.getRelays(
-        packageName,
-        "relay123",
-        data,
-      );
+      const result = await Nip55.getRelays(packageName, "relay123", data);
       setRelays(result.result);
       Alert.alert("Relays", `Relay Information: ${result.result}`);
     } catch (error: any) {

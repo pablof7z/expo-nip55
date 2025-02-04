@@ -8,7 +8,10 @@ declare class NostrNip55SignerModule extends NativeModule<NostrNip55SignerModule
   isExternalSignerInstalled(packageName: string): Promise<boolean>;
   getInstalledSignerApps(): Promise<SignerAppInfo[]>;
   setPackageName(packageName: string): Promise<void>;
-  getPublicKey(packageName?: string | null): Promise<{ npub: string }>;
+  getPublicKey(
+    packageName?: string | null,
+    permissions?: string | null,
+  ): Promise<{ npub: string }>;
   signEvent(
     packageName: string | null,
     eventJson: string,

@@ -20,8 +20,21 @@ export async function setPackageName(packageName: string) {
   return NostrNip55SignerModule.setPackageName(packageName);
 }
 
-export async function getPublicKey(packageName?: string | null) {
-  return NostrNip55SignerModule.getPublicKey(packageName ?? null);
+export interface Permission {
+  type: string;
+  kind?: number;
+  checked?: boolean;
+}
+
+export async function getPublicKey(
+  packageName?: string | null,
+  permissions?: Permission[] | null,
+) {
+  const permissionsJson = permissions ? JSON.stringify(permissions) : null;
+  return NostrNip55SignerModule.getPublicKey(
+    packageName ?? null,
+    permissionsJson,
+  );
 }
 
 export async function signEvent(
