@@ -1,4 +1,4 @@
-import * as Nip55 from "expo-nip55";
+import * as Nip55 from "nostr-nip55-signer";
 import { getEventHash, nip19 } from "nostr-tools";
 import React, { useState, useEffect } from "react";
 import {
