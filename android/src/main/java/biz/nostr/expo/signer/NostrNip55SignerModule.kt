@@ -22,7 +22,6 @@ class NostrNip55SignerModule : Module() {
     // region: Fields for fallback approach
     private var pendingPromise: Promise? = null
     private var pendingRequestCode: Int = 0
-
     private val callsMap: MutableMap<Int, CallData> = mutableMapOf()
 
     override fun definition() = ModuleDefinition {
@@ -80,13 +79,13 @@ class NostrNip55SignerModule : Module() {
                 promise: Promise ->
             val packageName = getPackageNameFromCall(pkgName)
             val signedEvent: Array<String>? =
-                    Signer.signEvent(context, packageName, eventJson, npub)
+                Signer.signEvent(context, packageName, eventJson, npub)
             if (signedEvent != null) {
                 val resultMap =
                         mapOf(
-                                "signature" to signedEvent[0],
-                                "id" to eventId,
-                                "event" to signedEvent[1]
+							"signature" to signedEvent[0],
+							"id" to eventId,
+							"event" to signedEvent[1]
                         )
                 promise.resolve(resultMap)
             } else {
@@ -163,7 +162,7 @@ class NostrNip55SignerModule : Module() {
                 promise.resolve(resultMap)
             } else {
                 val intent = IntentBuilder.nip44DecryptIntent(pkg, encryptedText, id, npub, pubKey)
-                launchFallbackIntent(REQUEST_NIP_04_DECRYPT, intent, promise)
+                launchFallbackIntent(REQUEST_NIP_44_DECRYPT, intent, promise)
             }
         }
 
@@ -236,11 +235,11 @@ class NostrNip55SignerModule : Module() {
                     val signedEventJson = dataIntent.getStringExtra("event")
 
                     val resultMap =
-                            mutableMapOf<String, Any?>(
-                                    "signature" to signature,
-                                    "id" to id,
-                                    "event" to signedEventJson
-                            )
+						mutableMapOf<String, Any?>(
+							"signature" to signature,
+							"id" to id,
+							"event" to signedEventJson
+						)
                     pendingPromise?.resolve(resultMap)
                 }
                 REQUEST_NIP_04_ENCRYPT, REQUEST_NIP_44_ENCRYPT -> {
@@ -248,7 +247,7 @@ class NostrNip55SignerModule : Module() {
                     val resultId = dataIntent.getStringExtra("id")
 
                     val resultMap =
-                            mutableMapOf<String, Any?>("result" to signature, "id" to resultId)
+						mutableMapOf<String, Any?>("result" to signature, "id" to resultId)
                     pendingPromise?.resolve(resultMap)
                 }
                 REQUEST_NIP_04_DECRYPT, REQUEST_NIP_44_DECRYPT -> {
@@ -256,7 +255,7 @@ class NostrNip55SignerModule : Module() {
                     val resultId = dataIntent.getStringExtra("id")
 
                     val resultMap =
-                            mutableMapOf<String, Any?>("result" to signature, "id" to resultId)
+						mutableMapOf<String, Any?>("result" to signature, "id" to resultId)
                     pendingPromise?.resolve(resultMap)
                 }
                 REQUEST_DECRYPT_ZAP_EVENT -> {
@@ -264,10 +263,10 @@ class NostrNip55SignerModule : Module() {
                     val resultId = dataIntent.getStringExtra("id")
 
                     val resultMap =
-                            mutableMapOf<String, Any?>(
-                                    "result" to decryptedEventJson,
-                                    "id" to resultId
-                            )
+						mutableMapOf<String, Any?>(
+							"result" to decryptedEventJson,
+							"id" to resultId
+						)
                     pendingPromise?.resolve(resultMap)
                 }
 				REQUEST_GET_RELAYS -> {
@@ -275,18 +274,18 @@ class NostrNip55SignerModule : Module() {
                     val resultId = dataIntent.getStringExtra("id")
 
                     val resultMap =
-                            mutableMapOf<String, Any?>(
-                                    "result" to eventJson,
-                                    "id" to resultId
-                            )
+						mutableMapOf<String, Any?>(
+							"result" to eventJson,
+							"id" to resultId
+						)
                     pendingPromise?.resolve(resultMap)
                 }
                 else -> {
                     // If the requestCode is unknown, reject
                     pendingPromise?.reject(
-                            "ERROR",
-                            "Unknown request code: $payload.requestCode",
-                            null
+						"ERROR",
+						"Unknown request code: $payload.requestCode",
+						null
                     )
                 }
             }
@@ -301,7 +300,7 @@ class NostrNip55SignerModule : Module() {
             throw ActivityAlreadyStartedException()
         }
         pendingRequestCode = requestCode
-		callsMap[requestCode] = CallData(promise, requestCode)
+        callsMap[requestCode] = CallData(promise, requestCode)
 
         try {
             appContext.throwingActivity.startActivityForResult(intent, pendingRequestCode)
@@ -316,15 +315,13 @@ class NostrNip55SignerModule : Module() {
 
     /** Helper function to get the effective package name or fallback to a stored one */
     private fun getPackageNameFromCall(paramPackageName: String?): String {
-        // If paramPackageName is null/blank, fallback to a stored one, else throw an error
-        // (assuming you have a stored 'signerPackageName' in your class, or adapt this logic)
         return if (!paramPackageName.isNullOrBlank()) {
             paramPackageName
         } else {
             signerPackageName
-                    ?: throw IllegalArgumentException(
-                            "Signer package name not set. Call setPackageName first."
-                    )
+				?: throw IllegalArgumentException(
+					"Signer package name not set. Call setPackageName first."
+				)
         }
     }
 
